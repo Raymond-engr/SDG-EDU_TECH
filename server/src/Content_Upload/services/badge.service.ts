@@ -1,7 +1,8 @@
 import Badge from '../models/badge.model';
 import User from '../../models/user.model';
-import Content from '../../Content_Upload/models/content.model';
+import Content from '../models/content.model';
 import logger from '../../utils/logger';
+import mongoose from 'mongoose';
 
 class BadgeService {
   // Check and award badges based on contribution count
@@ -24,7 +25,7 @@ class BadgeService {
         if (!userBadgeIds.includes(badge._id.toString())) {
           // Award the badge
           user.badges.push({
-            badge_id: badge._id,
+            badge_id: badge._id as mongoose.Types.ObjectId,
             awarded_at: new Date()
           });
           
@@ -60,7 +61,7 @@ class BadgeService {
         if (!userBadgeIds.includes(badge._id.toString())) {
           // Award the badge
           user.badges.push({
-            badge_id: badge._id,
+            badge_id: badge._id as mongoose.Types.ObjectId,
             awarded_at: new Date()
           });
           
@@ -96,7 +97,7 @@ class BadgeService {
         if (!userBadgeIds.includes(badge._id.toString())) {
           // Award the badge
           user.badges.push({
-            badge_id: badge._id,
+            badge_id: badge._id as mongoose.Types.ObjectId,
             awarded_at: new Date()
           });
           
@@ -124,7 +125,7 @@ class BadgeService {
       
       if (!alreadyHasBadge) {
         user.badges.push({
-          badge_id: badge._id,
+          badge_id: badge._id as mongoose.Types.ObjectId,
           awarded_at: new Date()
         });
         

@@ -4,7 +4,7 @@ import User from '../../models/user.model';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../utils/customErrors';
 import asyncHandler from '../../utils/asyncHandler';
 import { AuthRequest } from '../../middleware/auth.middleware';
-import mongoose from 'mongoose';
+import { badgeService } from '../services/badge.service';
 
 class ContentController {
   // Create new content
@@ -19,8 +19,8 @@ class ContentController {
       language, file_url, file_size, thumbnail_url, tags, is_downloadable
     } = (req as any).validated.body;
 
-    // Admins can approve content directly
-    const approved = req.user.role === 'admin';
+    // All content is approved by default now (removal of approval requirement)
+    const approved = true;
 
     const content = await Content.create({
       title,
@@ -52,9 +52,12 @@ class ContentController {
       $push: { contributions: content._id }
     });
 
+    // Check if user earned any contribution badges
+    await badgeService.checkContributionBadges(req.user._id.toString());
+
     res.status(201).json({
       success: true,
-      message: approved ? 'Content created and published' : 'Content created and pending approval',
+      message: 'Content created and published',
       data: content
     });
   });
@@ -63,7 +66,7 @@ class ContentController {
   getContentList = asyncHandler(async (req: AuthRequest, res: Response) => {
     const { 
       subject, grade_level, content_type, format, language,
-      approved, sort, page = 1, limit = 10, search
+      sort, page = 1, limit = 10, search
     } = (req as any).validated.query;
 
     const query: any = {};
@@ -75,18 +78,9 @@ class ContentController {
     if (format) query.format = format;
     if (language) query.language = language;
 
-    // Only admins and teachers can see unapproved content, but teachers can only see their own
-    if (approved !== undefined) {
-      if (req.user.role === 'admin') {
-        query.approved = approved === 'true';
-      } else if (req.user.role === 'teacher' && approved === 'false') {
-        query.approved = false;
-        query.creator = req.user._id;
-      } else {
-        query.approved = true;
-      }
-    } else if (req.user.role === 'student') {
-      query.approved = true;
+    // All content is visible by default, only show moderated content to admins if requested
+    if (req.user.role === 'admin' && (req as any).validated.query.is_moderated === 'true') {
+      query.is_moderated = true;
     }
 
     // Search functionality
@@ -140,13 +134,6 @@ class ContentController {
       throw new NotFoundError('Content not found');
     }
 
-    // If content is not approved, only admin or creator can view it
-    if (!content.approved && 
-        req.user.role !== 'admin' && 
-        content.creator._id.toString() !== req.user._id.toString()) {
-      throw new ForbiddenError('This content is not yet approved');
-    }
-
     // Increment view count
     content.views += 1;
     await content.save();
@@ -190,11 +177,6 @@ class ContentController {
     if (thumbnail_url) content.thumbnail_url = thumbnail_url;
     if (tags) content.tags = tags;
     if (is_downloadable !== undefined) content.is_downloadable = is_downloadable;
-
-    // If not admin and content was already approved, set back to pending
-    if (req.user.role !== 'admin' && content.approved) {
-      content.approved = false;
-    }
 
     await content.save();
 
@@ -309,14 +291,14 @@ class ContentController {
     // If more than 70% are downvotes and there are at least 5 votes, mark for moderation
     if (downvoteRatio > 0.7 && totalVotes >= 5) {
       content.is_moderated = true;
-      
-      // If more than 90% are downvotes and there are at least 10 votes, unapprove it
-      if (downvoteRatio > 0.9 && totalVotes >= 10) {
-        content.approved = false;
-      }
     }
 
     await content.save();
+
+    // Check if content creator earned any upvote badges
+    if (vote === 'up') {
+      await badgeService.checkUpvoteBadges(content.creator.toString());
+    }
 
     res.json({
       success: true,
@@ -338,11 +320,6 @@ class ContentController {
       throw new NotFoundError('Content not found');
     }
 
-    // Check if content is approved
-    if (!content.approved) {
-      throw new ForbiddenError('This content is not available for download');
-    }
-
     // Check if content is downloadable
     if (!content.is_downloadable) {
       throw new ForbiddenError('This content is not downloadable');
@@ -362,14 +339,18 @@ class ContentController {
       }
     });
 
-    // Return the file URL (in a real application, you might generate a signed URL or stream the file)
+    // Check if content creator earned any download badges
+    await badgeService.checkDownloadBadges(content.creator.toString());
+
+    // Return the file URL
     res.json({
       success: true,
       message: 'Content ready for download',
       data: {
         file_url: content.file_url,
         file_size: content.file_size,
-        title: content.title
+        title: content.title,
+        offline_access: true // Indicate that this content can be accessed offline
       }
     });
   });

@@ -14,11 +14,15 @@ import {
   updateCommentSchema,
   commentQuerySchema
 } from '../validators/comment.validator';
+import badgeRoutes from './badge.routes';
 
 const router = Router();
 
 // All routes are protected and require authentication
 router.use(authenticateToken);
+
+// Badge routes
+router.use('/badges', badgeRoutes);
 
 // Content routes
 router.post('/', 
