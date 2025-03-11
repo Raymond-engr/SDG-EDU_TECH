@@ -235,4 +235,144 @@ class ContentController {
 
   // Vote on content
   voteContent = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const contentI
+    const contentId = req.params.id;
+    const { vote } = (req as any).validated.body;
+
+    if (!['up', 'down'].includes(vote)) {
+      throw new BadRequestError('Invalid vote type. Must be "up" or "down"');
+    }
+
+    const content = await Content.findById(contentId);
+    if (!content) {
+      throw new NotFoundError('Content not found');
+    }
+
+    const userId = req.user._id;
+    
+    // Check if user has already voted
+    const existingVoteIndex = content.votes.voters.findIndex(
+      (voter: any) => voter.user.toString() === userId.toString()
+    );
+
+    // If user has already voted
+    if (existingVoteIndex > -1) {
+      const existingVote = content.votes.voters[existingVoteIndex].vote;
+      
+      // If user is changing their vote
+      if (existingVote !== vote) {
+        // Remove previous vote
+        if (existingVote === 'up') {
+          content.votes.upvotes -= 1;
+        } else {
+          content.votes.downvotes -= 1;
+        }
+        
+        // Add new vote
+        if (vote === 'up') {
+          content.votes.upvotes += 1;
+        } else {
+          content.votes.downvotes += 1;
+        }
+
+        // Update the vote type
+        content.votes.voters[existingVoteIndex].vote = vote;
+      } else {
+        // User is removing their vote
+        if (vote === 'up') {
+          content.votes.upvotes -= 1;
+        } else {
+          content.votes.downvotes -= 1;
+        }
+
+        // Remove voter from the array
+        content.votes.voters.splice(existingVoteIndex, 1);
+      }
+    } else {
+      // User is voting for the first time
+      if (vote === 'up') {
+        content.votes.upvotes += 1;
+      } else {
+        content.votes.downvotes += 1;
+      }
+
+      // Add user to voters
+      content.votes.voters.push({
+        user: userId,
+        vote
+      });
+    }
+
+    // Check if content should be auto-moderated due to high downvotes
+    const totalVotes = content.votes.upvotes + content.votes.downvotes;
+    const downvoteRatio = totalVotes > 0 ? content.votes.downvotes / totalVotes : 0;
+    
+    // If more than 70% are downvotes and there are at least 5 votes, mark for moderation
+    if (downvoteRatio > 0.7 && totalVotes >= 5) {
+      content.is_moderated = true;
+      
+      // If more than 90% are downvotes and there are at least 10 votes, unapprove it
+      if (downvoteRatio > 0.9 && totalVotes >= 10) {
+        content.approved = false;
+      }
+    }
+
+    await content.save();
+
+    res.json({
+      success: true,
+      message: 'Vote recorded successfully',
+      data: {
+        upvotes: content.votes.upvotes,
+        downvotes: content.votes.downvotes,
+        userVote: vote
+      }
+    });
+  });
+
+  // Download content
+  downloadContent = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const contentId = req.params.id;
+
+    const content = await Content.findById(contentId);
+    if (!content) {
+      throw new NotFoundError('Content not found');
+    }
+
+    // Check if content is approved
+    if (!content.approved) {
+      throw new ForbiddenError('This content is not available for download');
+    }
+
+    // Check if content is downloadable
+    if (!content.is_downloadable) {
+      throw new ForbiddenError('This content is not downloadable');
+    }
+
+    // Increment download count
+    content.downloads += 1;
+    await content.save();
+
+    // Add to user's download history
+    await User.findByIdAndUpdate(req.user._id, {
+      $push: {
+        download_history: {
+          content_id: contentId,
+          downloaded_at: new Date()
+        }
+      }
+    });
+
+    // Return the file URL (in a real application, you might generate a signed URL or stream the file)
+    res.json({
+      success: true,
+      message: 'Content ready for download',
+      data: {
+        file_url: content.file_url,
+        file_size: content.file_size,
+        title: content.title
+      }
+    });
+  });
+}
+
+export const contentController = new ContentController();

@@ -17,6 +17,10 @@ export interface IUser extends Document {
     downloaded_at: Date;
   }[];
   contributions: mongoose.Types.ObjectId[];
+  badges: {
+    badge_id: mongoose.Types.ObjectId;
+    awarded_at: Date;
+  }[];
   verificationToken?: string;
   verificationTokenExpires?: Date;
   lastVerificationTokenRequestedAt?: Date;
@@ -85,6 +89,16 @@ const UserSchema: Schema<IUser> = new Schema({
   contributions: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Content'
+  }],
+  badges: [{
+    badge_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Badge'
+    },
+    awarded_at: {
+      type: Date,
+      default: Date.now
+    }
   }],
   verificationToken: String,
   verificationTokenExpires: Date,
