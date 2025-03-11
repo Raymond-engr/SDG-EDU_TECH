@@ -1,17 +1,19 @@
 openapi: 3.0.0
 info:
-  title: Talenvo Healthcare App API
+  title: Educational Resource Platform API
   description: |
-    Location-based healthcare search application that finds healthcare providers based on user location and preferences.
+    Educational platform that allows teachers to upload content and students to access resources.
     Authentication is handled via JWT access tokens and HTTP-only cookie refresh tokens.
   version: 1.0.0
   contact:
-    name: Talenvo Healthcare Support
+    name: Support Team
     email: raymondomoyakhi@gmail.com
 
 servers:
-  - url: 'https://talenvo-healthcare-app-production-7d8e.up.railway.app/api/v1'
+  - url: 'https://api.example.com/api/v1'
     description: Production server
+  - url: 'http://localhost:3000/api/v1'
+    description: Development server
 
 components:
   securitySchemes:
@@ -32,8 +34,28 @@ components:
         email:
           type: string
           format: email
+        role:
+          type: string
+          enum: [student, teacher, admin]
+        preferred_language:
+          type: string
+          enum: [en, fr, es, de, zh, ar, hi, pt, sw, ru]
         isEmailVerified:
           type: boolean
+        download_history:
+          type: array
+          items:
+            type: object
+            properties:
+              content_id:
+                type: string
+              downloaded_at:
+                type: string
+                format: date-time
+        contributions:
+          type: array
+          items:
+            type: string
         lastLogin:
           type: string
           format: date-time
@@ -60,6 +82,24 @@ components:
               type: string
             email:
               type: string
+            role:
+              type: string
+              enum: [student, teacher, admin]
+            preferred_language:
+              type: string
+
+    EmailVerificationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        code:
+          type: string
+        message:
+          type: string
+        canResend:
+          type: boolean
+          description: Indicates if a new verification email can be requested
 
     ErrorResponse:
       type: object
@@ -71,10 +111,69 @@ components:
         code:
           type: string
 
+    DownloadHistory:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              content_id:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  title:
+                    type: string
+                  subject:
+                    type: string
+                  content_type:
+                    type: string
+                  format:
+                    type: string
+              downloaded_at:
+                type: string
+                format: date-time
+
+    UserContributions:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              title:
+                type: string
+              description:
+                type: string
+              subject:
+                type: string
+              content_type:
+                type: string
+              format:
+                type: string
+              votes:
+                type: number
+              created_at:
+                type: string
+                format: date-time
+              approved:
+                type: boolean
+
 paths:
   /auth/register:
     post:
       summary: Register a new user account
+      tags:
+        - Authentication
       requestBody:
         required: true
         content:
@@ -92,6 +191,14 @@ paths:
                 password:
                   type: string
                   minLength: 8
+                role:
+                  type: string
+                  enum: [student, teacher]
+                  default: student
+                preferred_language:
+                  type: string
+                  enum: [en, fr, es, de, zh, ar, hi, pt, sw, ru]
+                  default: en
       responses:
         '201':
           description: Registration successful
@@ -114,6 +221,8 @@ paths:
   /auth/login:
     post:
       summary: User login
+      tags:
+        - Authentication
       requestBody:
         required: true
         content:
@@ -144,20 +253,54 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  canResend:
-                    type: boolean
+                $ref: '#/components/schemas/EmailVerificationResponse'
+
+  /auth/google:
+    post:
+      summary: Authenticate with Google
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  description: Google authentication token
+                role:
+                  type: string
+                  enum: [student, teacher]
+                preferred_language:
+                  type: string
+                  enum: [en, fr, es, de, zh, ar, hi, pt, sw, ru]
+      responses:
+        '200':
+          description: Google authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                description: HTTP-only cookie containing refresh token
+        '401':
+          description: Invalid Google token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /auth/refresh-token:
     post:
       summary: Refresh access token using refresh token cookie
+      tags:
+        - Authentication
       responses:
         '200':
           description: New access token generated
@@ -185,6 +328,8 @@ paths:
   /auth/logout:
     post:
       summary: Logout user and invalidate tokens
+      tags:
+        - Authentication
       security:
         - BearerAuth: []
       responses:
@@ -208,6 +353,8 @@ paths:
   /auth/verify-email/{token}:
     get:
       summary: Verify user email
+      tags:
+        - Authentication
       parameters:
         - in: path
           name: token
@@ -226,10 +373,18 @@ paths:
                     type: boolean
                   message:
                     type: string
+        '400':
+          description: Invalid or expired verification token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /auth/resend-verification:
     post:
       summary: Resend email verification token
+      tags:
+        - Authentication
       requestBody:
         required: true
         content:
@@ -263,6 +418,8 @@ paths:
   /auth/forgot-password:
     post:
       summary: Initiate password reset
+      tags:
+        - Authentication
       requestBody:
         required: true
         content:
@@ -286,10 +443,18 @@ paths:
                     type: boolean
                   message:
                     type: string
+        '400':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /auth/reset-password/{token}:
     post:
       summary: Reset password using reset token
+      tags:
+        - Authentication
       parameters:
         - in: path
           name: token
@@ -318,11 +483,19 @@ paths:
                   success:
                     type: boolean
                   message:
-                    type: string               
- 
+                    type: string
+        '400':
+          description: Invalid or expired reset token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /user/me:
     get:
       summary: Get current user profile
+      tags:
+        - User
       security:
         - BearerAuth: []
       responses:
@@ -331,4 +504,192 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/profile:
+    put:
+      summary: Update user profile
+      tags:
+        - User
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 50
+                preferred_language:
+                  type: string
+                  enum: [en, fr, es, de, zh, ar, hi, pt, sw, ru]
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+                      preferred_language:
+                        type: string
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/download-history:
+    get:
+      summary: Get user download history
+      tags:
+        - User
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Download history retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DownloadHistory'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/contributions:
+    get:
+      summary: Get current user's contributions
+      tags:
+        - User
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User contributions retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserContributions'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/contributions/{userId}:
+    get:
+      summary: Get specific user's contributions
+      tags:
+        - User
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User contributions retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserContributions'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/role:
+    put:
+      summary: Change user role (admin only)
+      tags:
+        - User
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, role]
+              properties:
+                userId:
+                  type: string
+                role:
+                  type: string
+                  enum: [student, teacher, admin]
+      responses:
+        '200':
+          description: User role updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+        '403':
+          description: Not authorized to change user roles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
