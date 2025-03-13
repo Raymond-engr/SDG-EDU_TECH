@@ -4,7 +4,6 @@ import Content from '../models/content.model';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../../utils/customErrors';
 import asyncHandler from '../../utils/asyncHandler';
 import { AuthRequest } from '../../middleware/auth.middleware';
-import mongoose from 'mongoose';
 
 class CommentController {
   // Add a comment to content

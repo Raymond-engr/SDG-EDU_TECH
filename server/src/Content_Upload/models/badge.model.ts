@@ -1,6 +1,7 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema, Types  } from 'mongoose';
 
 export interface IBadge extends Document {
+  _id: Types.ObjectId;
   name: string;
   description: string;
   icon_url: string;
@@ -45,4 +46,4 @@ const BadgeSchema: Schema<IBadge> = new Schema({
   }
 });
 
-export default mongoose.model<IBadge>('Badge', BadgeSchema, 'Badges');
+export default mongoose.model<IBadge & Document>('Badge', BadgeSchema, 'Badges');

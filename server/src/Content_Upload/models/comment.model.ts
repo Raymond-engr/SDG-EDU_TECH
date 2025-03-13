@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema, Model } from 'mongoose';
 import mongoosePaginate from 'mongoose-paginate-v2';
 
 export interface IComment extends Document {
@@ -9,6 +9,10 @@ export interface IComment extends Document {
   is_deleted: boolean;
   created_at: Date;
   updated_at: Date;
+}
+
+interface ICommentModel extends Model<IComment> {
+  paginate: (__query: any, __options: any) => any; // Add paginate method
 }
 
 const CommentSchema: Schema<IComment> = new Schema({
@@ -53,4 +57,4 @@ const CommentSchema: Schema<IComment> = new Schema({
 // Add pagination plugin
 CommentSchema.plugin(mongoosePaginate);
 
-export default mongoose.model<IComment>('Comment', CommentSchema, 'Comments');
+export default mongoose.model<IComment, ICommentModel>('Comment', CommentSchema, 'Comments');

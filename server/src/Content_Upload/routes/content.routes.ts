@@ -32,7 +32,7 @@ router.post('/',
 );
 
 router.get('/', 
-  validateRequests(contentQuerySchema, 'query'),
+  validateRequests(contentQuerySchema),
   contentController.getContentList
 );
 
@@ -65,7 +65,7 @@ router.post('/comment',
 );
 
 router.get('/:contentId/comments', 
-  validateRequests(commentQuerySchema, 'query'),
+  validateRequests(commentQuerySchema),
   commentController.getContentComments
 );
 
