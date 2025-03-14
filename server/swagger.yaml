@@ -723,4 +723,662 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/
+                    $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/profile:
+    put:
+      summary: Update user profile
+      tags:
+        - User
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 50
+                preferred_language:
+                  type: string
+                  enum: [en, fr, es, de, zh, ar, hi, pt, sw, ru]
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+                      preferred_language:
+                        type: string
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/download-history:
+    get:
+      summary: Get user download history
+      tags:
+        - User
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Download history retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DownloadHistory'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/contributions:
+    get:
+      summary: Get current user's contributions
+      tags:
+        - User
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User contributions retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserContributions'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/contributions/{userId}:
+    get:
+      summary: Get specific user's contributions
+      tags:
+        - User
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User contributions retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserContributions'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/role:
+    put:
+      summary: Change user role (admin only)
+      tags:
+        - User
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, role]
+              properties:
+                userId:
+                  type: string
+                role:
+                  type: string
+                  enum: [student, teacher, admin]
+      responses:
+        '200':
+          description: User role updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+        '403':
+          description: Not authorized to change user roles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Content Upload Endpoints
+  /content:
+    post:
+      summary: Create new educational content
+      tags:
+        - Content
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, description, subject, grade_level, content_type, format, file_url, file_size]
+              properties:
+                title:
+                  type: string
+                  maxLength: 100
+                description:
+                  type: string
+                  maxLength: 1000
+                subject:
+                  type: string
+                  enum: [mathematics, science, language, social_studies, arts, physical_education, technology, other]
+                grade_level:
+                  type: array
+                  items:
+                    type: string
+                content_type:
+                  type: string
+                  enum: [lesson, quiz, assignment, resource]
+                format:
+                  type: string
+                  enum: [video, document, presentation, audio, interactive]
+                language:
+                  type: string
+                file_url:
+                  type: string
+                file_size:
+                  type: number
+                thumbnail_url:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+                is_downloadable:
+                  type: boolean
+                  default: true
+      responses:
+        '201':
+          description: Content created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Content'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Not authorized to create content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    get:
+      summary: Get content list with filters
+      tags:
+        - Content
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: subject
+          schema:
+            type: string
+            enum: [mathematics, science, language, social_studies, arts, physical_education, technology, other]
+        - in: query
+          name: grade_level
+          schema:
+            type: string
+            description: Comma-separated list of grade levels
+        - in: query
+          name: content_type
+          schema:
+            type: string
+            enum: [lesson, quiz, assignment, resource]
+        - in: query
+          name: format
+          schema:
+            type: string
+            enum: [video, document, presentation, audio, interactive]
+        - in: query
+          name: language
+          schema:
+            type: string
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [newest, popular, most_downloaded, highest_rated]
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: is_moderated
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Content list retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentList'
+
+  /content/{id}:
+    get:
+      summary: Get content details by ID
+      tags:
+        - Content
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Content details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Content'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    put:
+      summary: Update content
+      tags:
+        - Content
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  maxLength: 100
+                description:
+                  type: string
+                  maxLength: 1000
+                subject:
+                  type: string
+                  enum: [mathematics, science, language, social_studies, arts, physical_education, technology, other]
+                grade_level:
+                  type: array
+                  items:
+                    type: string
+                content_type:
+                  type: string
+                  enum: [lesson, quiz, assignment, resource]
+                format:
+                  type: string
+                  enum: [video, document, presentation, audio, interactive]
+                language:
+                  type: string
+                file_url:
+                  type: string
+                file_size:
+                  type: number
+                thumbnail_url:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+                is_downloadable:
+                  type: boolean
+      responses:
+        '200':
+          description: Content updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Content'
+        '403':
+          description: Not authorized to update this content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    delete:
+      summary: Delete content
+      tags:
+        - Content
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Content deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '403':
+          description: Not authorized to delete this content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /content/{id}/vote:
+    post:
+      summary: Vote on content
+      tags:
+        - Content
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vote]
+              properties:
+                vote:
+                  type: string
+                  enum: [up, down]
+      responses:
+        '200':
+          description: Vote recorded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      upvotes:
+                        type: number
+                      downvotes:
+                        type: number
+                      userVote:
+                        type: string
+                        enum: [up, down]
+        '400':
+          description: Invalid vote type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /content/{id}/download:
+    get:
+      summary: Download content
+      tags:
+        - Content
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Content ready for download
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      file_url:
+                        type: string
+                      file_size:
+                        type: number
+                      title:
+                        type: string
+                      offline_access:
+                        type: boolean
+        '403':
+          description: Content is not downloadable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Comment Endpoints
+  /content/comment:
+    post:
+      summary: Add a comment to content
+      tags:
+        - Comments
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content_id, text]
+              properties:
+                content_id:
+                  type: string
+                text:
+                  type: string
+                  maxLength: 1000
+                parent_id:
+                  type: string
+      responses:
+        '201':
+          description: Comment added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Comment'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Cannot comment on unapproved content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Content or parent comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /content/{contentId}/comments:
+    get:
+      summary: Get comments for content
+      tags:
+        - Comments
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: contentId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default
