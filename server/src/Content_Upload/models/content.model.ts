@@ -173,8 +173,8 @@ ContentSchema.plugin(mongoosePaginate);
 // Define an interface for the model with pagination
 interface IContentModel extends Model<IContent> {
   paginate: (
-    query: any,
-    options: any
+    __query: any,
+    __options: any
   ) => Promise<{
     docs: IContent[];
     totalDocs: number;
