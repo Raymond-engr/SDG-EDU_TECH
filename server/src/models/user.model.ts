@@ -21,6 +21,8 @@ export interface IUser extends Document {
     badge_id: mongoose.Types.ObjectId;
     awarded_at: Date;
   }[];
+  moodleId?: number;
+  openEdxId?: string;
   verificationToken?: string;
   verificationTokenExpires?: Date;
   lastVerificationTokenRequestedAt?: Date;
@@ -100,6 +102,16 @@ const UserSchema: Schema<IUser> = new Schema({
       default: Date.now
     }
   }],
+  moodleId: {
+    type: Number,
+    unique: true,
+    sparse: true
+  },
+  openEdxId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
   verificationToken: String,
   verificationTokenExpires: Date,
   lastVerificationTokenRequestedAt: Date,
