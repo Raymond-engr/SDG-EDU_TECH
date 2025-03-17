@@ -3,6 +3,8 @@ import axios from 'axios';
 import logger from '../../utils/logger';
 import OERResource from '../models/oer-resource.model';
 import { curriculumMappingService } from './curriculum-mapping.service';
+import UnifiedCourse from '../models/unified-course.model';
+
 
 class OERIntegrationService {
   /**
@@ -89,6 +91,21 @@ class OERIntegrationService {
     } catch (error: any) {
       logger.error(`Error fetching OpenStax resources: ${error.message}`);
       return [];
+    }
+  }
+
+  /**
+   * Determine content type based on resource properties
+   */
+  private determineContentType(resource: any): 'video' | 'text' | 'quiz' | 'audio' {
+    if (resource.youtube_id || resource.video_id || resource.url?.includes('youtube') || resource.url?.includes('video')) {
+      return 'video';
+    } else if (resource.exercise_id || resource.url?.includes('exercise') || resource.url?.includes('quiz')) {
+      return 'quiz';
+    } else if (resource.audio_id || resource.url?.includes('audio')) {
+      return 'audio';
+    } else {
+      return 'text';
     }
   }
 
@@ -187,4 +204,61 @@ class OERIntegrationService {
         }
       };
     } catch (error: any) {
-      logger.error(`OER integration failed: ${error
+      logger.error(`OER integration failed: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Filter OERs by keyword alignment to specific curriculum
+   */
+  async filterResourcesByCurriculum(subject: string, curriculumKeywords: string[]): Promise<any[]> {
+    try {
+      // Find resources matching the subject
+      const resources = await OERResource.find({ subjects: { $in: [subject] } });
+      
+      // Filter resources that match curriculum keywords
+      return resources.filter(resource => {
+        const content = `${resource.title} ${resource.description}`.toLowerCase();
+        return curriculumKeywords.some(keyword => content.includes(keyword.toLowerCase()));
+      });
+    } catch (error: any) {
+      logger.error(`Error filtering resources by curriculum: ${error.message}`);
+      return [];
+    }
+  }
+
+  /**
+   * Add OER resources to a course
+   */
+  async addOERResourcesToUnifiedCourse(courseId: string, subject: string, maxResources: number = 5): Promise<any> {
+    try {
+      // Find relevant OER resources
+      const resources = await OERResource.find({ subjects: { $in: [subject] } })
+        .sort({ download_count: -1 })
+        .limit(maxResources);
+      
+      // Format resources for course embedding
+      const oerResources = resources.map(resource => ({
+        provider: resource.provider,
+        url: resource.url,
+        type: resource.type,
+        license: resource.license
+      }));
+      
+      // Add resources to course
+      const course = await UnifiedCourse.findByIdAndUpdate(
+        courseId,
+        { $set: { oer_resources: oerResources } },
+        { new: true }
+      );
+      
+      return course;
+    } catch (error: any) {
+      logger.error(`Error adding OER resources to course: ${error.message}`);
+      throw error;
+    }
+  }
+}
+
+export const oerIntegrationService = new OERIntegrationService();
