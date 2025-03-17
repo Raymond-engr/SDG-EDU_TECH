@@ -10,7 +10,6 @@ import {
 
 const router = Router();
 
-// All routes are protected and require authentication
 router.use(authenticateToken);
 
 // Get all badges

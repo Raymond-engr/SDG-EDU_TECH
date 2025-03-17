@@ -3,9 +3,10 @@ import { Response } from 'express';
 import { lmsSyncService } from '../services/lms-sync.service';
 import { courseSyncService } from '../services/course-sync.service';
 import { AuthRequest } from '../../middleware/auth.middleware';
-import { BadRequestError, NotFoundError } from '../../utils/customErrors';
+import { NotFoundError } from '../../utils/customErrors';
 import asyncHandler from '../../utils/asyncHandler';
 import User from '../../models/user.model';
+import UnifiedCourse from '../models/unified-course.model';
 
 class LmsController {
   syncUser = asyncHandler(async (req: AuthRequest, res: Response) => {

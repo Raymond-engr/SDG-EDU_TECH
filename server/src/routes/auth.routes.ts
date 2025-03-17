@@ -23,7 +23,7 @@ router.post('/google', strictLimit, authController.googleAuth);
 // Email verification routes
 router.get('/verify-email/:token', standardLimit, authController.verifyEmail);
 // change resend-verification route standard limit to strict limit before production
-router.post('/resend-verification', standardLimit, validateRequests(emailSchema), authController.resendVerification);
+router.post('/resend-verification', strictLimit, validateRequests(emailSchema), authController.resendVerification);
 
 // Password reset routes
 router.post('/forgot-password', strictLimit, validateRequests(emailSchema), authController.forgotPassword);

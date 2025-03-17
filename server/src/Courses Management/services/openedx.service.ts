@@ -1,5 +1,5 @@
 import axios from 'axios';
-import logger from '../utils/logger';
+import logger from '../../utils/logger';
 
 class OpenEdxService {
   private readonly baseUrl: string;
@@ -31,6 +31,9 @@ class OpenEdxService {
 
       this.accessToken = response.data.access_token;
       this.tokenExpiry = new Date(Date.now() + response.data.expires_in * 1000);
+      if (this.accessToken === null) {
+        throw new Error('Access token is null');
+      }
       return this.accessToken;
     } catch (error: any) {
       logger.error(`Failed to get Open edX access token: ${error.message}`);
