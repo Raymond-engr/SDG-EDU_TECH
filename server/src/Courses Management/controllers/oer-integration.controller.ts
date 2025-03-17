@@ -1,4 +1,3 @@
-// server/src/Courses Management/controllers/oer-integration.controller.ts
 import { Response } from 'express';
 import { AuthRequest } from '../../middleware/auth.middleware';
 import asyncHandler from '../../utils/asyncHandler';

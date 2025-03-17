@@ -1,4 +1,3 @@
-// server/src/Courses Management/routes/oer-integration.routes.ts
 import { Router } from 'express';
 import { oerIntegrationController } from '../controllers/oer-integration.controller';
 import { authenticateToken, authorize } from '../../middleware/auth.middleware';

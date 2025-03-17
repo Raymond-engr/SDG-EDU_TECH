@@ -1,4 +1,3 @@
-// server/src/Courses Management/services/oer-integration.service.ts
 import axios from 'axios';
 import logger from '../../utils/logger';
 import OERResource from '../models/oer-resource.model';
