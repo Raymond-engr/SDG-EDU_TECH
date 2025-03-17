@@ -1,6 +1,17 @@
+// server/src/middleware/language.middleware.ts
 import { Request, Response, NextFunction } from 'express';
 import { languageService } from '../Courses Management/services/language.service';
 import { AuthRequest } from './auth.middleware';
+import logger from '../utils/logger';
+
+// Extend Express Request interface to include language property
+declare global {
+  namespace Express {
+    interface Request {
+      language?: string;
+    }
+  }
+}
 
 /**
  * Middleware to set language preference in request
@@ -18,6 +29,7 @@ export const setLanguagePreference = async (req: Request, res: Response, next: N
         language = userLanguage;
       }
     } catch (error) {
+      logger.error('Error getting user language:', error);
       // Continue with header-detected language if error
     }
   }

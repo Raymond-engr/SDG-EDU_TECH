@@ -3,6 +3,7 @@ import lmsRoutes from './lms.routes';
 import oerRoutes from './oer.routes';
 import languageRoutes from './language.routes';
 import unifiedCourseRoutes from './unified-course.routes';
+import curriculumRoutes from './curriculum.routes';
 import { setLanguagePreference } from '../../middleware/language.middleware';
 
 const router = Router();
@@ -12,5 +13,6 @@ router.use('/lms', lmsRoutes);
 router.use('/oer', oerRoutes);
 router.use('/language', languageRoutes);
 router.use('/courses', unifiedCourseRoutes);
+router.use('/curriculum', curriculumRoutes);
 
 export default router;
