@@ -5,6 +5,7 @@ import languageRoutes from './language.routes';
 import unifiedCourseRoutes from './unified-course.routes';
 import curriculumRoutes from './curriculum.routes';
 import oerIntegrationRoutes from './oer-integration.routes';
+import offlineSyncRoutes from './offline-sync.routes';
 import { setLanguagePreference } from '../../middleware/language.middleware';
 
 const router = Router();
@@ -16,5 +17,6 @@ router.use('/language', languageRoutes);
 router.use('/courses', unifiedCourseRoutes);
 router.use('/curriculum', curriculumRoutes);
 router.use('/oer-integration', oerIntegrationRoutes);
+router.use('/offline-sync', offlineSyncRoutes);
 
 export default router;

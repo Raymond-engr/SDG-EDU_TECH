@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../../middleware/auth.middleware';
 import asyncHandler from '../../utils/asyncHandler';
 import { offlineSyncService } from '../services/offline-sync.service';
-import { BadRequestError, NotFoundError } from '../../utils/customErrors';
+import { BadRequestError } from '../../utils/customErrors';
 
 class OfflineSyncController {
   /**
@@ -104,4 +104,10 @@ class OfflineSyncController {
     
     res.json({
       success: true,
-      message: `Batch sync completed:
+      message: `Batch sync completed: ${result.synced} activities synced, ${result.failed} failed`,
+      data: result
+    });
+  });
+}
+
+export const offlineSyncController = new OfflineSyncController();
