@@ -1,7 +1,7 @@
 import { moodleService } from './moodle.service';
 import { openEdxService } from './openedx.service';
-import logger from '../utils/logger';
-import User from '../models/user.model';
+import logger from '../../utils/logger';
+import User from '../../models/user.model';
 
 class LmsSyncService {
   /**
