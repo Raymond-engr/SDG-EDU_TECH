@@ -1,6 +1,7 @@
 import { LearningOutcome, AttendanceRecord, ContentEngagement, CurriculumProgress } from '../models/analytics.model';
 import User from '../../models/user.model';
 import UnifiedCourse from '../models/unified-course.model';
+import OERResource from '../models/oer-resource.model';
 import logger from '../../utils/logger';
 import mongoose from 'mongoose';
 import geoip from 'geoip-lite';
@@ -347,9 +348,14 @@ class AnalyticsService {
   async getContentEngagementAnalytics(contentId: string, contentType: 'course' | 'oer_resource'): Promise<any> {
     try {
       // Validate content exists
-      const contentModel = contentType === 'course' ? UnifiedCourse : mongoose.model(contentType === 'oer_resource' ? 'OERResource' : '');
+      let content;
       
-      const content = await contentModel.findById(contentId);
+      if (contentType === 'course') {
+        content = await UnifiedCourse.findById(contentId);
+      } else {
+        content = await OERResource.findById(contentId);
+      }
+      
       if (!content) {
         throw new NotFoundError('Content not found');
       }
