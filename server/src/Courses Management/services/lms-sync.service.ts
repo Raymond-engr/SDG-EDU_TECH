@@ -3,18 +3,34 @@ import { openEdxService } from './openedx.service';
 import logger from '../../utils/logger';
 import User from '../../models/user.model';
 
+// Define proper interfaces for the LMS results
+interface MoodleResult {
+  id?: number;
+  error?: string;
+}
+
+interface OpenEdxResult {
+  id?: string;
+  error?: string;
+}
+
+interface SyncResults {
+  moodle: MoodleResult | null;
+  openedx: OpenEdxResult | null;
+}
+
 class LmsSyncService {
   /**
    * Synchronize a user with both LMS platforms
    */
-  async syncUser(userId: string): Promise<any> {
+  async syncUser(userId: string): Promise<SyncResults> {
     try {
       const user = await User.findById(userId);
       if (!user) {
         throw new Error('User not found');
       }
 
-      const results = {
+      const results: SyncResults = {
         moodle: null,
         openedx: null,
       };
@@ -57,11 +73,11 @@ class LmsSyncService {
       }
 
       // Update user with LMS IDs if available
-      if (results.moodle && !results.moodle.error) {
+      if (results.moodle && !results.moodle.error && results.moodle.id) {
         user.moodleId = results.moodle.id;
       }
       
-      if (results.openedx && !results.openedx.error) {
+      if (results.openedx && !results.openedx.error && results.openedx.id) {
         user.openEdxId = results.openedx.id;
       }
       
