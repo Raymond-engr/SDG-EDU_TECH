@@ -6,6 +6,7 @@ import { googleAuthService } from '../services/google-auth.service';
 import User from '../models/user.model';
 import { BadRequestError, UnauthorizedError } from '../utils/customErrors';
 import asyncHandler from '../utils/asyncHandler';
+import { lmsController } from '../Courses Management/controllers/lms.controller';
 
 class AuthController {
   register = asyncHandler(async (req: Request, res: Response) => {
@@ -162,9 +163,17 @@ class AuthController {
     user.verificationTokenExpires = undefined;
     await user.save();
 
+    try {
+      // Use LMS controller methods
+      await lmsController.performUserSync(String(user._id));
+      await lmsController.performCourseSync();
+    } catch (error) {
+      console.error('LMS account creation failed for user:', user._id, error);
+    }
+  
     res.status(200).json({
       success: true,
-      message: 'Email verified successfully',
+      message: 'Email verified. LMS accounts and courses synced.',
     });
   });
 
